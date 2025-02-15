@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import random
 from itertools import permutations
-from quantum_supply_chain.src.quantum.tsp_qubo import TSPQUBO
+from quantum_supply_chain.src.optimization.tsp_qubo import TSPQUBO
 from multiprocessing import Pool
 
 class ClassicalTSP:
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     print("Route:", ts_solution, "Cost:", ts_cost)
 
     # Benchmark with QAOA Solver
-    from quantum_supply_chain.src.quantum.qaoa_solver import QAOASolver
+    from quantum_supply_chain.src.optimization.qaoa_solver import QAOASolver
     qaoa_solver = QAOASolver(p=3)
     qaoa_result = qaoa_solver.solve_with_qaoa()
     print("\n⚛️ QAOA Quantum Solution:")
