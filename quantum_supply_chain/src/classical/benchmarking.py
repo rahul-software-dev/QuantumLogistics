@@ -9,8 +9,8 @@ from multiprocessing import Pool
 from quantum_supply_chain.src.classical.classical_solver import ClassicalTSP
 
 # Import Quantum Solvers
-from quantum_supply_chain.src.quantum.qaoa_solver import QAOASolver
-from quantum_supply_chain.src.quantum.tsp_qubo import TSPQUBO
+from quantum_supply_chain.src.optimization.qaoa_solver import QAOASolver
+from quantum_supply_chain.src.optimization.tsp_qubo import TSPQUBO
 
 class BenchmarkTSP:
     def __init__(self):
