@@ -6,7 +6,7 @@ import seaborn as sns
 from multiprocessing import Pool
 
 # Import Classical Solvers
-from quantum_supply_chain.src.classical.classical_solver import ClassicalTSP
+from quantum_supply_chain.src.optimization.classical_solver import ClassicalTSP
 
 # Import Quantum Solvers
 from quantum_supply_chain.src.optimization.qaoa_solver import QAOASolver
