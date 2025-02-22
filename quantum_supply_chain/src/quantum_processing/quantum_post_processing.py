@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
+import scipy.stats as stats
 from typing import List, Dict, Tuple
 
 class QuantumPostProcessing:
@@ -12,7 +13,7 @@ class QuantumPostProcessing:
     def __init__(self, quantum_results: Dict[str, float], graph: nx.Graph, classical_solution: List[int] = None):
         """
         :param quantum_results: Dictionary mapping routes to probabilities (quantum result output).
-        :param graph: NetworkX Graph representing the supply chain.
+        :param graph: NetworkX Graph (Directed or Undirected) representing the supply chain.
         :param classical_solution: Classical solver result for comparison (optional).
         """
         self.quantum_results = quantum_results
@@ -38,15 +39,24 @@ class QuantumPostProcessing:
     def compute_route_cost(self, route: List[int]) -> float:
         """
         Computes the cost of a given route using edge weights from the graph.
+        Handles cases where edges are missing or graphs are directed.
         :param route: List of nodes representing a route.
         :return: Total route cost.
         """
-        cost = sum(self.graph[route[i]][route[i + 1]]["weight"] for i in range(len(route) - 1))
-        return cost
+        total_cost = 0
+        for i in range(len(route) - 1):
+            u, v = route[i], route[i + 1]
+            if self.graph.has_edge(u, v):
+                total_cost += self.graph[u][v].get("weight", 1)  # Default weight to 1 if missing
+            else:
+                print(f"⚠ Missing Edge: ({u} → {v}), assigning high penalty!")
+                total_cost += 999  # Assign a high penalty for missing edges
+        return total_cost
 
     def compare_with_classical(self):
         """
         Compares the quantum solution with the classical approach.
+        Provides a multi-metric comparison including efficiency, stability, and cost reduction.
         """
         if self.classical_solution is None:
             print("⚠ No classical solution provided for comparison.")
@@ -59,21 +69,39 @@ class QuantumPostProcessing:
         print(f"🔹 Classical Route: {self.classical_solution} (Cost: {classical_cost})")
 
         improvement = ((classical_cost - self.optimal_cost) / classical_cost) * 100
+        stability = self.compute_stability()
+
         print(f"🚀 **Quantum Improvement:** {improvement:.2f}%")
+        print(f"⚖ **Quantum Solution Stability:** {stability:.2f}")
+
+    def compute_stability(self) -> float:
+        """
+        Computes the stability of the quantum results using variance and entropy.
+        :return: Stability score (lower variance & higher entropy = more stable).
+        """
+        probabilities = np.array(list(self.quantum_results.values()))
+        entropy = -np.sum(probabilities * np.log2(probabilities + 1e-9))  # Avoid log(0)
+        variance = np.var(probabilities)
+        skewness = stats.skew(probabilities)
+
+        print(f"📈 Quantum Probability Distribution: Entropy = {entropy:.4f}, Variance = {variance:.4f}, Skewness = {skewness:.4f}")
+
+        return entropy / (variance + 1e-6)  # Normalize with small epsilon to avoid division by zero
 
     def visualize_route(self):
         """
         Visualizes the quantum-optimized supply chain route.
+        Uses an improved layout and color-coded node distinction.
         """
-        pos = nx.spring_layout(self.graph)  # Position nodes for visualization
+        pos = nx.spring_layout(self.graph, seed=42)  # Stable layout
         plt.figure(figsize=(10, 7))
 
         # Draw the full graph
-        nx.draw(self.graph, pos, with_labels=True, node_color="lightblue", edge_color="gray", node_size=500)
+        nx.draw(self.graph, pos, with_labels=True, node_color="lightblue", edge_color="gray", node_size=600, font_size=12)
 
         # Highlight the optimal quantum route
         edges = [(self.optimal_route[i], self.optimal_route[i + 1]) for i in range(len(self.optimal_route) - 1)]
-        nx.draw_networkx_edges(self.graph, pos, edgelist=edges, edge_color="red", width=2)
+        nx.draw_networkx_edges(self.graph, pos, edgelist=edges, edge_color="red", width=3)
 
         plt.title("🔍 Quantum-Optimized Supply Chain Route")
         plt.show()
@@ -81,6 +109,7 @@ class QuantumPostProcessing:
     def plot_probability_distribution(self):
         """
         Plots the probability distribution of different quantum solutions.
+        Enhances readability with interactive Matplotlib.
         """
         sns.set_style("whitegrid")
         plt.figure(figsize=(10, 5))
@@ -89,10 +118,13 @@ class QuantumPostProcessing:
         probabilities = list(self.quantum_results.values())
 
         sns.barplot(x=routes, y=probabilities, palette="coolwarm")
-        plt.xticks(rotation=90)
-        plt.xlabel("Route")
-        plt.ylabel("Probability")
-        plt.title("🧬 Quantum Route Probability Distribution")
+        plt.xticks(rotation=90, fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.xlabel("Route", fontsize=12)
+        plt.ylabel("Probability", fontsize=12)
+        plt.title("🧬 Quantum Route Probability Distribution", fontsize=14)
+        plt.grid(True, linestyle="--", alpha=0.7)
+
         plt.show()
 
 
@@ -106,8 +138,8 @@ if __name__ == "__main__":
         "0-2-1-3-4": 0.10
     }
 
-    # Create a sample supply chain graph
-    G = nx.Graph()
+    # Create a sample supply chain graph (supports both directed and undirected)
+    G = nx.DiGraph()  # Change to nx.Graph() for undirected networks
     G.add_weighted_edges_from([(0, 1, 10), (0, 2, 15), (1, 3, 12), (2, 3, 8), (3, 4, 7)])
 
     # Sample classical solution
